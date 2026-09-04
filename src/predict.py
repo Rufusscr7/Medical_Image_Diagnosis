@@ -85,6 +85,9 @@ def main():
         bar = "#" * int(prob / 5)
         print(f"  {cls_name:<8}: {prob:6.2f}% | {bar}")
 
+    print("\nNote: This is an AI-based experimental classification result for educational/research purposes only.")
+    print("It is not a medical diagnosis and should not be used as a substitute for professional medical advice.")
+
 
 if __name__ == "__main__":
     main()
