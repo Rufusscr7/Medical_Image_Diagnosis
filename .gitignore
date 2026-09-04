@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+
+# Large dataset
+dataset/
+
+# Trained model
+models/*.pth
+
+# Output images
+outputs/*.png
+
+# VS Code
+.vscode/
+
+# Environment variables
