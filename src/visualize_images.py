@@ -3,85 +3,70 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from PIL import Image
 
-# Dataset paths
 DATASET_PATH = "dataset/HAM10000"
+METADATA_PATH = os.path.join(DATASET_PATH, "HAM10000_metadata.csv")
+IMAGE_DIRS = [
+    os.path.join(DATASET_PATH, "HAM10000_images_part_1"),
+    os.path.join(DATASET_PATH, "HAM10000_images_part_2")
+]
+OUTPUT_DIR = "outputs"
 
-METADATA_PATH = os.path.join(
-    DATASET_PATH,
-    "HAM10000_metadata.csv"
-)
 
-IMAGE_PART_1 = os.path.join(
-    DATASET_PATH,
-    "HAM10000_images_part_1"
-)
+def visualize_samples(metadata_path=METADATA_PATH, image_dirs=IMAGE_DIRS, output_dir=OUTPUT_DIR):
+    """Plots representative sample images for each skin lesion class in HAM10000."""
+    if not os.path.exists(metadata_path):
+        print(f"Metadata file not found at: {metadata_path}")
+        return
 
-IMAGE_PART_2 = os.path.join(
-    DATASET_PATH,
-    "HAM10000_images_part_2"
-)
+    df = pd.read_csv(metadata_path)
+    classes = sorted(df["dx"].unique())
 
-# Load metadata
-df = pd.read_csv(METADATA_PATH)
+    # Build image ID -> filepath mapping
+    image_paths = {}
+    for folder in image_dirs:
+        if os.path.exists(folder):
+            for filename in os.listdir(folder):
+                if filename.lower().endswith((".jpg", ".jpeg", ".png")):
+                    img_id = os.path.splitext(filename)[0]
+                    image_paths[img_id] = os.path.join(folder, filename)
 
-# Disease categories
-classes = df["dx"].unique()
+    if not image_paths:
+        print("No image files found in part 1 / part 2 directories.")
+        return
 
-print("Classes:")
-print(classes)
+    # Plot sample images side by side
+    fig, axes = plt.subplots(1, len(classes), figsize=(18, 4))
+    if len(classes) == 1:
+        axes = [axes]
 
-# Create image dictionary
-image_paths = {}
+    for i, disease in enumerate(classes):
+        sample_rows = df[df["dx"] == disease]
+        found_image = False
 
-for folder in [IMAGE_PART_1, IMAGE_PART_2]:
+        for _, row in sample_rows.iterrows():
+            img_id = row["image_id"]
+            if img_id in image_paths:
+                img = Image.open(image_paths[img_id]).convert("RGB")
+                axes[i].imshow(img)
+                axes[i].set_title(disease, fontsize=12, fontweight="bold")
+                axes[i].axis("off")
+                found_image = True
+                break
 
-    for filename in os.listdir(folder):
+        if not found_image:
+            axes[i].set_title(f"{disease}\n(missing)", fontsize=10)
+            axes[i].axis("off")
 
-        if filename.endswith(".jpg"):
-            image_id = filename.replace(".jpg", "")
+    plt.suptitle("HAM10000 - Sample Skin Lesion Images by Class", fontsize=14, y=1.05)
+    plt.tight_layout()
 
-            image_paths[image_id] = os.path.join(
-                folder,
-                filename
-            )
+    os.makedirs(output_dir, exist_ok=True)
+    out_file = os.path.join(output_dir, "sample_images.png")
+    plt.savefig(out_file, dpi=300, bbox_inches="tight")
+    plt.close()
 
-# Create figure
-fig, axes = plt.subplots(
-    1,
-    len(classes),
-    figsize=(20, 5)
-)
+    print(f"Sample visualization saved to: {out_file}")
 
-for i, disease in enumerate(classes):
 
-    # Get first image of this disease
-    row = df[df["dx"] == disease].iloc[0]
-
-    image_id = row["image_id"]
-
-    image_path = image_paths[image_id]
-
-    # Open image
-    image = Image.open(image_path)
-
-    # Display image
-    axes[i].imshow(image)
-
-    axes[i].set_title(disease)
-
-    axes[i].axis("off")
-
-plt.tight_layout()
-
-# Create output folder
-os.makedirs("outputs", exist_ok=True)
-
-# Save figure
-plt.savefig(
-    "outputs/sample_images.png"
-)
-
-plt.show()
-
-print("\nSample images saved to:")
-print("outputs/sample_images.png")
+if __name__ == "__main__":
+    visualize_samples()

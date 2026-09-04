@@ -3,750 +3,127 @@ import sys
 import pandas as pd
 import torch
 import matplotlib.pyplot as plt
-
 from torch.utils.data import DataLoader
+from sklearn.metrics import classification_report, confusion_matrix
 
-
-# ==========================================
-# ALLOW IMPORTING FILES FROM SRC
-# ==========================================
-
-sys.path.append("src")
-
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from preprocessing import (
     HAM10000Dataset,
     test_transform,
     CLASS_NAMES
 )
-
 from model import create_model
 
-
-# ==========================================
-# CONFIGURATION
-# ==========================================
-
 BATCH_SIZE = 16
-
-DEVICE = torch.device(
-    "cuda" if torch.cuda.is_available() else "cpu"
-)
-
-print("=" * 50)
-print("MODEL EVALUATION")
-print("=" * 50)
-
-print("Using device:", DEVICE)
-
-
-# ==========================================
-# DATASET PATH
-# ==========================================
-
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 DATASET_PATH = "dataset/HAM10000"
-
-
-# ==========================================
-# LOAD VALIDATION DATA
-# ==========================================
-
-val_df = pd.read_csv(
-
-    os.path.join(
-        DATASET_PATH,
-        "splits",
-        "validation.csv"
-    )
-)
-
-print("\nValidation images:", len(val_df))
-
-
-# ==========================================
-# CREATE IMAGE PATH DICTIONARY
-# ==========================================
-
-image_paths = {}
-
-
-folders = [
-
-    os.path.join(
-        DATASET_PATH,
-        "HAM10000_images_part_1"
-    ),
-
-    os.path.join(
-        DATASET_PATH,
-        "HAM10000_images_part_2"
-    )
-
-]
-
-
-print("\nLoading image paths...")
-
-
-for folder in folders:
-
-    for filename in os.listdir(folder):
-
-        if filename.endswith(".jpg"):
-
-            image_id = filename.replace(
-                ".jpg",
-                ""
-            )
-
-            image_paths[image_id] = os.path.join(
-                folder,
-                filename
-            )
-
-
-print(
-    "Images found:",
-    len(image_paths)
-)
-
-
-# ==========================================
-# CREATE VALIDATION DATASET
-# ==========================================
-
-val_dataset = HAM10000Dataset(
-
-    val_df,
-
-    image_paths,
-
-    transform=test_transform
-
-)
-
-
-# ==========================================
-# CREATE DATALOADER
-# ==========================================
-
-val_loader = DataLoader(
-
-    val_dataset,
-
-    batch_size=BATCH_SIZE,
-
-    shuffle=False,
-
-    num_workers=0
-
-)
-
-
-# ==========================================
-# CREATE MODEL
-# ==========================================
-
-model = create_model(
-
-    num_classes=len(CLASS_NAMES)
-
-)
-
-
-# ==========================================
-# LOAD TRAINED MODEL
-# ==========================================
-
+VAL_CSV = os.path.join(DATASET_PATH, "splits", "validation.csv")
 MODEL_PATH = "models/best_model.pth"
-
-
-if not os.path.exists(MODEL_PATH):
-
-    print(
-        "\nERROR: Model file not found!"
-    )
-
-    print(
-        "Expected location:",
-        MODEL_PATH
-    )
-
-    sys.exit()
-
-
-model.load_state_dict(
-
-    torch.load(
-        MODEL_PATH,
-        map_location=DEVICE
-    )
-
-)
-
-
-model = model.to(DEVICE)
-
-
-model.eval()
-
-
-print(
-    "\nTrained model loaded successfully!"
-)
-
-
-# ==========================================
-# EVALUATION
-# ==========================================
-
-correct = 0
-
-total = 0
-
-
-all_predictions = []
-
-all_labels = []
-
-
-print("\nEvaluating model...")
-
-
-with torch.no_grad():
-
-    for images, labels in val_loader:
-
-        images = images.to(DEVICE)
-
-        labels = labels.to(DEVICE)
-
-
-        outputs = model(images)
-
-
-        _, predicted = torch.max(
-
-            outputs,
-
-            1
-
-        )
-
-
-        total += labels.size(0)
-
-
-        correct += (
-
-            predicted == labels
-
-        ).sum().item()
-
-
-        all_predictions.extend(
-
-            predicted.cpu().numpy()
-
-        )
-
-
-        all_labels.extend(
-
-            labels.cpu().numpy()
-
-        )
-
-
-# ==========================================
-# CALCULATE ACCURACY
-# ==========================================
-
-accuracy = (
-
-    100 * correct / total
-
-)
-
-
-print("\n" + "=" * 50)
-
-print(
-    f"VALIDATION ACCURACY: "
-    f"{accuracy:.2f}%"
-)
-
-print("=" * 50)
-
-
-# ==========================================
-# CONFUSION MATRIX
-# ==========================================
-
-num_classes = len(CLASS_NAMES)
-
-
-confusion_matrix = [
-
-    [0 for _ in range(num_classes)]
-
-    for _ in range(num_classes)
-
+OUTPUT_DIR = "outputs"
+IMAGE_FOLDERS = [
+    os.path.join(DATASET_PATH, "HAM10000_images_part_1"),
+    os.path.join(DATASET_PATH, "HAM10000_images_part_2")
 ]
 
 
-for true_label, predicted_label in zip(
-
-    all_labels,
-
-    all_predictions
-
-):
-
-    confusion_matrix[
-
-        true_label
-
-    ][
-
-        predicted_label
-
-    ] += 1
+def load_image_lookup(folders):
+    """Builds a mapping from image ID to filepath across dataset parts."""
+    lookup = {}
+    for folder in folders:
+        if os.path.exists(folder):
+            for fname in os.listdir(folder):
+                if fname.lower().endswith((".jpg", ".jpeg", ".png")):
+                    img_id = os.path.splitext(fname)[0]
+                    lookup[img_id] = os.path.join(folder, fname)
+    return lookup
 
 
-# ==========================================
-# PRINT CONFUSION MATRIX
-# ==========================================
+def plot_confusion_matrix(cm, class_names, output_path):
+    """Draws and saves a confusion matrix heatmap."""
+    fig, ax = plt.subplots(figsize=(8, 7))
+    im = ax.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
+    ax.figure.colorbar(im, ax=ax)
 
-print("\nCONFUSION MATRIX\n")
-
-
-print("Classes:")
-
-for i, class_name in enumerate(CLASS_NAMES):
-
-    print(i, "-", class_name)
-
-
-print("\nMatrix:")
-
-
-for row in confusion_matrix:
-
-    print(row)
-
-
-# ==========================================
-# PRECISION, RECALL, F1 SCORE
-# ==========================================
-
-print("\n" + "=" * 65)
-
-print("CLASSIFICATION REPORT")
-
-print("=" * 65)
-
-
-print(
-
-    f"{'Class':<10}"
-    f"{'Precision':<12}"
-    f"{'Recall':<12}"
-    f"{'F1-Score':<12}"
-    f"{'Support':<10}"
-
-)
-
-
-print("-" * 65)
-
-
-for i in range(num_classes):
-
-
-    # True Positives
-
-    true_positive = confusion_matrix[i][i]
-
-
-    # False Positives
-
-    false_positive = sum(
-
-        confusion_matrix[row][i]
-
-        for row in range(num_classes)
-
-        if row != i
-
+    # Ticks & labels
+    ax.set(
+        xticks=range(len(class_names)),
+        yticks=range(len(class_names)),
+        xticklabels=class_names,
+        yticklabels=class_names,
+        title="HAM10000 Confusion Matrix",
+        ylabel="True Label",
+        xlabel="Predicted Label"
     )
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
 
-
-    # False Negatives
-
-    false_negative = sum(
-
-        confusion_matrix[i][column]
-
-        for column in range(num_classes)
-
-        if column != i
-
-    )
-
-
-    # Support
-
-    support = sum(
-
-        confusion_matrix[i]
-
-    )
-
-
-    # Precision
-
-    if (
-
-        true_positive +
-        false_positive
-
-    ) == 0:
-
-        precision = 0
-
-
-    else:
-
-        precision = (
-
-            true_positive /
-
-            (
-                true_positive +
-                false_positive
+    # Annotate matrix cells
+    thresh = cm.max() / 2.0
+    for i in range(cm.shape[0]):
+        for j in range(cm.shape[1]):
+            ax.text(
+                j, i, format(cm[i, j], "d"),
+                ha="center", va="center",
+                color="white" if cm[i, j] > thresh else "black",
+                fontsize=9
             )
 
-        )
+    fig.tight_layout()
+    plt.savefig(output_path, dpi=300, bbox_inches="tight")
+    plt.close()
+    print(f"Confusion matrix plot saved to: {output_path}")
 
 
-    # Recall
+def evaluate():
+    if not os.path.exists(MODEL_PATH):
+        print(f"Model checkpoint not found at '{MODEL_PATH}'. Run train.py first.")
+        return
 
-    if (
+    if not os.path.exists(VAL_CSV):
+        print(f"Validation split not found at '{VAL_CSV}'. Run split_dataset.py first.")
+        return
 
-        true_positive +
-        false_negative
+    print(f"Evaluating model on {DEVICE}...")
 
-    ) == 0:
+    # Load data
+    val_df = pd.read_csv(VAL_CSV)
+    image_lookup = load_image_lookup(IMAGE_FOLDERS)
+    val_dataset = HAM10000Dataset(val_df, image_lookup, transform=test_transform)
+    val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=0)
 
-        recall = 0
+    # Load model
+    model = create_model(num_classes=len(CLASS_NAMES))
+    model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
+    model = model.to(DEVICE)
+    model.eval()
 
+    all_preds = []
+    all_targets = []
 
-    else:
+    with torch.no_grad():
+        for images, labels in val_loader:
+            images = images.to(DEVICE)
+            outputs = model(images)
+            _, preds = torch.max(outputs, 1)
 
-        recall = (
+            all_preds.extend(preds.cpu().numpy())
+            all_targets.extend(labels.numpy())
 
-            true_positive /
+    total = len(all_targets)
+    correct = sum(p == t for p, t in zip(all_preds, all_targets))
+    accuracy = (correct / total) * 100.0 if total > 0 else 0.0
 
-            (
-                true_positive +
-                false_negative
-            )
+    print(f"\nValidation Accuracy: {accuracy:.2f}% ({correct}/{total})")
 
-        )
+    # Classification metrics
+    print("\nClassification Report:")
+    print(classification_report(all_targets, all_preds, target_names=CLASS_NAMES, digits=4, zero_division=0))
 
+    # Confusion matrix
+    cm = confusion_matrix(all_targets, all_preds)
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    plot_confusion_matrix(cm, CLASS_NAMES, os.path.join(OUTPUT_DIR, "confusion_matrix.png"))
 
-    # F1 Score
 
-    if (
-
-        precision +
-        recall
-
-    ) == 0:
-
-        f1_score = 0
-
-
-    else:
-
-        f1_score = (
-
-            2 *
-
-            (
-                precision *
-                recall
-            )
-
-            /
-
-            (
-                precision +
-                recall
-            )
-
-        )
-
-
-    print(
-
-        f"{CLASS_NAMES[i]:<10}"
-
-        f"{precision:<12.3f}"
-
-        f"{recall:<12.3f}"
-
-        f"{f1_score:<12.3f}"
-
-        f"{support:<10}"
-
-    )
-
-
-# ==========================================
-# SAVE CONFUSION MATRIX IMAGE
-# ==========================================
-
-os.makedirs(
-
-    "outputs",
-
-    exist_ok=True
-
-)
-
-
-plt.figure(
-
-    figsize=(10, 8)
-
-)
-
-
-plt.imshow(
-
-    confusion_matrix
-
-)
-
-
-plt.colorbar()
-
-
-plt.xticks(
-
-    range(num_classes),
-
-    CLASS_NAMES,
-
-    rotation=45
-
-)
-
-
-plt.yticks(
-
-    range(num_classes),
-
-    CLASS_NAMES
-
-)
-
-
-plt.xlabel(
-
-    "Predicted Label"
-
-)
-
-
-plt.ylabel(
-
-    "True Label"
-
-)
-
-
-plt.title(
-
-    "HAM10000 Confusion Matrix"
-
-)
-
-
-# Add numbers inside matrix
-
-for i in range(num_classes):
-
-    for j in range(num_classes):
-
-        plt.text(
-
-            j,
-
-            i,
-
-            str(
-                confusion_matrix[i][j]
-            ),
-
-            ha="center",
-
-            va="center"
-
-        )
-
-
-plt.tight_layout()
-
-
-plt.savefig(
-
-    "outputs/confusion_matrix.png"
-
-)
-
-
-plt.show()
-
-
-print("\nConfusion matrix saved!")
-
-print(
-
-    "Location: "
-    "outputs/confusion_matrix.png"
-
-)
-
-
-# ==========================================
-# FINAL MESSAGE
-# ==========================================
-
-print("\n" + "=" * 50)
-
-print(
-    "EVALUATION COMPLETED"
-)
-
-print("=" * 50)# ==========================================
-# SAVE CONFUSION MATRIX IMAGE
-# ==========================================
-
-os.makedirs(
-
-    "outputs",
-
-    exist_ok=True
-
-)
-
-
-plt.figure(
-
-    figsize=(10, 8)
-
-)
-
-
-plt.imshow(
-
-    confusion_matrix
-
-)
-
-
-plt.colorbar()
-
-
-plt.xticks(
-
-    range(num_classes),
-
-    CLASS_NAMES,
-
-    rotation=45
-
-)
-
-
-plt.yticks(
-
-    range(num_classes),
-
-    CLASS_NAMES
-
-)
-
-
-plt.xlabel(
-
-    "Predicted Label"
-
-)
-
-
-plt.ylabel(
-
-    "True Label"
-
-)
-
-
-plt.title(
-
-    "HAM10000 Confusion Matrix"
-
-)
-
-
-# Add numbers inside matrix
-
-for i in range(num_classes):
-
-    for j in range(num_classes):
-
-        plt.text(
-
-            j,
-
-            i,
-
-            str(
-                confusion_matrix[i][j]
-            ),
-
-            ha="center",
-
-            va="center"
-
-        )
-
-
-plt.tight_layout()
-
-
-plt.savefig(
-
-    "outputs/confusion_matrix.png",
-
-    dpi=300,
-
-    bbox_inches="tight"
-
-)
-
-
-plt.close()
-
-
-print("\nConfusion matrix saved!")
-
-print(
-
-    "Location: "
-    "outputs/confusion_matrix.png"
-
-)
+if __name__ == "__main__":
+    evaluate()

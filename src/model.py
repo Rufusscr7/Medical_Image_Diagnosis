@@ -3,36 +3,27 @@ import torch.nn as nn
 from torchvision import models
 
 
-def create_model(num_classes=7):
+def create_model(num_classes=7, pretrained=True):
+    """
+    Builds a ResNet-18 model adapted for skin lesion classification.
+    Replaces the default ImageNet 1000-class head with a linear layer for `num_classes`.
+    """
+    weights = models.ResNet18_Weights.DEFAULT if pretrained else None
+    model = models.resnet18(weights=weights)
 
-    # Load pretrained ResNet18
-    model = models.resnet18(
-        weights=models.ResNet18_Weights.DEFAULT
-    )
-
-    # Get number of input features
-    num_features = model.fc.in_features
-
-    # Replace final layer for 7 skin disease classes
-    model.fc = nn.Linear(
-        num_features,
-        num_classes
-    )
+    # Replace the final fully connected classification layer
+    in_features = model.fc.in_features
+    model.fc = nn.Linear(in_features, num_classes)
 
     return model
 
 
-# Test the model
 if __name__ == "__main__":
+    model = create_model(num_classes=7)
+    print(f"ResNet-18 initialized successfully with {model.fc.out_features} output classes.")
 
-    model = create_model()
-
-    print("=" * 50)
-    print("RESNET18 MODEL CREATED SUCCESSFULLY")
-    print("=" * 50)
-
-    print("\nNumber of output classes:")
-    print(model.fc.out_features)
-
-    print("\nModel:")
-    print(model)
+    # Quick test forward pass with dummy tensor
+    dummy_input = torch.randn(2, 3, 224, 224)
+    with torch.no_grad():
+        output = model(dummy_input)
+    print(f"Sample forward pass output shape: {output.shape}")
