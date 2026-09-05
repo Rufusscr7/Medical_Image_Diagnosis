@@ -22,6 +22,10 @@ EPOCHS = 5
 LEARNING_RATE = 0.001
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+# Day 3 preparation: set to True to use class-weighted loss for imbalance handling.
+# Keeping False here preserves the original Member-1 baseline behaviour.
+USE_CLASS_WEIGHTS = False
+
 DATASET_PATH = "dataset/HAM10000"
 SPLIT_PATH = os.path.join(DATASET_PATH, "splits")
 IMAGE_FOLDERS = [
@@ -116,7 +120,22 @@ def main():
 
     # Initialize model
     model = create_model(num_classes=len(CLASS_NAMES)).to(DEVICE)
-    criterion = nn.CrossEntropyLoss()
+
+    # If USE_CLASS_WEIGHTS is True, compute weights from training counts
+    # to penalise the majority class less and minority classes more.
+    if USE_CLASS_WEIGHTS:
+        class_counts = train_df["dx"].value_counts().sort_index()
+        # Weights are inversely proportional to class frequency
+        weights = 1.0 / torch.tensor(
+            [class_counts.get(name, 1) for name in CLASS_NAMES], dtype=torch.float
+        )
+        weights = weights / weights.sum() * len(CLASS_NAMES)  # normalise
+        weights = weights.to(DEVICE)
+        criterion = nn.CrossEntropyLoss(weight=weights)
+        print(f"Using class-weighted loss (weights: {weights.cpu().numpy().round(4)})")
+    else:
+        criterion = nn.CrossEntropyLoss()
+
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
     os.makedirs("models", exist_ok=True)
