@@ -1,148 +1,769 @@
-"""Skin-Scan AI — user-friendly Streamlit UI for skin-lesion (cancer) screening."""
+"""
+Skin-Scan AI
+Streamlit application for HAM10000 skin lesion classification.
+"""
 
 import streamlit as st
 from PIL import Image
 
-import model
+import inference as model
+
+
+# ==================================================
+# PAGE CONFIGURATION
+# ==================================================
 
 st.set_page_config(
     page_title="Skin-Scan AI",
     page_icon="🔬",
-    layout="centered",
+    layout="centered"
 )
+
+
+# ==================================================
+# CUSTOM CSS
+# ==================================================
 
 st.markdown(
     """
     <style>
-      .block-container { padding-top: 2.5rem; }
-      .result-box {
-        border-radius: 12px; padding: 1.2rem 1.5rem; margin-top: 1rem;
-        font-size: 1.05rem; border-left: 6px solid;
-      }
-      .result-benign {
-        background: #e8f8ee; border-color: #28a745; color: #155724;
-      }
-      .result-malignant {
-        background: #fdecea; border-color: #dc3545; color: #7f1d1d;
-      }
-      .result-pending {
-        background: #eef2f7; border-color: #6c757d; color: #495057;
-      }
-      .sidebar-note { font-size: 0.85rem; color: #6c757d; }
+
+    .block-container {
+        padding-top: 2.5rem;
+    }
+
+    .result-box {
+        border-radius: 12px;
+        padding: 1.2rem 1.5rem;
+        margin-top: 1rem;
+        font-size: 1.05rem;
+        border-left: 6px solid;
+        background-color: #f4f6f9;
+    }
+
+    .result-box h3 {
+        margin-top: 0;
+    }
+
+    .sidebar-note {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+
     </style>
     """,
-    unsafe_allow_html=True,
+    unsafe_allow_html=True
 )
 
-# ------------------------------------------------------------------ sidebar
+
+# ==================================================
+# DISEASE INFORMATION
+# ==================================================
+
+DISEASE_INFO = {
+
+    "akiec":
+    "Actinic keratoses and intraepithelial carcinoma",
+
+    "bcc":
+    "Basal cell carcinoma",
+
+    "bkl":
+    "Benign keratosis-like lesions",
+
+    "df":
+    "Dermatofibroma",
+
+    "mel":
+    "Melanoma",
+
+    "nv":
+    "Melanocytic nevi",
+
+    "vasc":
+    "Vascular lesions"
+}
+
+
+# ==================================================
+# SIDEBAR
+# ==================================================
+
 with st.sidebar:
+
     st.markdown("## 🔬 Skin-Scan AI")
-    st.markdown("AI-assisted screening for skin lesions (moles & spots).")
-    st.divider()
-    st.markdown("### How it works")
+
     st.markdown(
-        "1. Upload a clear photo of the lesion.\n"
-        "2. Click **Analyse**.\n"
-        "3. See the model's prediction and confidence."
-    )
-    st.divider()
-    st.caption("Checklist for a good photo:")
-    st.markdown(
-        "- Good lighting, no flash glare\n"
-        "- Lesion fills most of the frame\n"
-        "- In focus and not blurry"
-    )
-    st.divider()
-    model_status = "🟡 Placeholder (demo)" if not model.is_model_available() \
-        else "🟢 Trained model loaded"
-    st.markdown(f"**Model status:** {model_status}")
-    st.markdown(
-        '<p class="sidebar-note">This tool is for screening only and is not '
-        "a substitute for a professional medical opinion.</p>",
-        unsafe_allow_html=True,
+        "AI-assisted skin lesion classification."
     )
 
-# ---------------------------------------------------------------- main body
-st.title("Skin-Scan AI")
-st.markdown(
-    "Upload a picture of a **mole or skin lesion** and the system will "
-    "calculate how likely it is to be **cancerous**."
-)
+    st.divider()
 
-uploaded = st.file_uploader(
-    "Upload a lesion image (JPG / PNG)",
-    type=["jpg", "jpeg", "png"],
-    help="For best results, make sure the lesion is well lit and in focus.",
-)
 
-col_left, col_right = st.columns(2)
+    # ----------------------------------------------
+    # NAVIGATION
+    # ----------------------------------------------
 
-st.session_state.setdefault("history", [])
+    page = st.radio(
 
-if uploaded is not None:
-    image = Image.open(uploaded).convert("RGB")
-    with col_left:
-        st.image(image, caption="Uploaded image", use_column_width=True)
+        "Navigation",
 
-    with col_right:
-        st.markdown("### 📊 Analysis")
-        if st.button("Analyse lesion", type="primary", use_container_width=True):
-            with st.spinner("Running prediction calculations..."):
-                result = model.predict(image)
+        [
+            "🔬 Analyse Image",
+            "📚 Disease Information",
+            "ℹ️ About"
+        ]
+    )
 
-            st.session_state.history.append({
-                "name": uploaded.name,
-                "label": result["label"],
-                "prob": result["malignant_prob"],
-            })
 
-            is_malignant = result["label"] == "Malignant"
-            box_class = "result-malignant" if is_malignant else "result-benign"
-            emoji = "⚠️" if is_malignant else "✅"
-            st.markdown(
-                f'<div class="result-box {box_class}">'
-                f"<strong>{emoji} Result: {result['label']}</strong><br/>"
-                f"{result['message']}</div>",
-                unsafe_allow_html=True,
-            )
-            st.markdown("")
-            st.markdown("**Malignancy probability:**")
-            st.progress(float(result["malignant_prob"]),
-                        text=f"{result['malignant_prob'] * 100:.1f}%")
-            st.markdown(f"**Model confidence:** {result['confidence'] * 100:.0f}%")
+    st.divider()
 
-            st.caption("⚠️ This is a screening result — always confirm with a "
-                       "dermatologist.")
-        else:
-            st.info("Upload an image, then press **Analyse lesion**.")
-else:
-    col_left.markdown("### 🖼️ Upload preview")
-    col_right.markdown("### 📊 Analysis")
-    col_right.info("Please upload an image to get started.")
 
-# ------------------------------------------------------------------ history
-st.divider()
-st.markdown("### 📋 Session history")
-if st.session_state.history:
-    rows = ""
-    for entry in reversed(st.session_state.history[-5:]):
-        colour = "#dc3545" if entry["label"] == "Malignant" else "#28a745"
-        rows += (
-            f"<tr><td>{entry['name']}</td>"
-            f'<td style="color:{colour};font-weight:600">{entry["label"]}</td>'
-            f"<td>{entry['prob'] * 100:.1f}%</td></tr>"
+    # ----------------------------------------------
+    # MODEL STATUS
+    # ----------------------------------------------
+
+    if model.is_model_available():
+
+        model_status = "🟢 Trained model loaded"
+
+    else:
+
+        model_status = "🔴 Model not found"
+
+
+    st.markdown(
+
+        f"**Model Status:** {model_status}"
+
+    )
+
+
+    st.divider()
+
+
+    st.markdown("### 📷 Image Guidelines")
+
+    st.markdown(
+
+        """
+        - Good lighting
+        - Image should be clear
+        - Avoid blurry images
+        - Lesion should be visible
+        - Avoid excessive shadows
+        """
+
+    )
+
+
+    st.divider()
+
+
+    st.caption(
+
+        "⚠️ This application is for educational "
+        "and research purposes only."
+
+    )
+
+
+# ==================================================
+# ANALYSE IMAGE PAGE
+# ==================================================
+
+if page == "🔬 Analyse Image":
+
+    st.title("🔬 Skin-Scan AI")
+
+    st.markdown(
+
+        """
+        Upload a **skin lesion image** and the trained
+        Artificial Intelligence model will classify it
+        into one of the HAM10000 skin lesion categories.
+        """
+
+    )
+
+
+    st.info(
+
+        "⚠️ This system is not a medical diagnosis tool. "
+        "Always consult a qualified dermatologist."
+
+    )
+
+
+    # ----------------------------------------------
+    # IMAGE UPLOAD
+    # ----------------------------------------------
+
+    uploaded = st.file_uploader(
+
+        "Upload a skin lesion image",
+
+        type=[
+            "jpg",
+            "jpeg",
+            "png"
+        ]
+
+    )
+
+
+    # ----------------------------------------------
+    # SESSION HISTORY
+    # ----------------------------------------------
+
+    if "history" not in st.session_state:
+
+        st.session_state.history = []
+
+
+    # ----------------------------------------------
+    # IMAGE AVAILABLE
+    # ----------------------------------------------
+
+    if uploaded is not None:
+
+
+        image = Image.open(
+
+            uploaded
+
+        ).convert(
+
+            "RGB"
+
         )
-    st.markdown(
-        f'<table style="width:100%;font-size:0.95rem">'
-        f"<tr><th>Image</th><th>Result</th><th>Probability</th></tr>{rows}</table>",
-        unsafe_allow_html=True,
+
+
+        # ------------------------------------------
+        # COLUMNS
+        # ------------------------------------------
+
+        col_left, col_right = st.columns(2)
+
+
+        # ------------------------------------------
+        # IMAGE PREVIEW
+        # ------------------------------------------
+
+        with col_left:
+
+
+            st.subheader(
+
+                "🖼️ Uploaded Image"
+
+            )
+
+
+            st.image(
+
+                image,
+
+                caption=uploaded.name,
+
+                use_container_width=True
+
+            )
+
+
+        # ------------------------------------------
+        # ANALYSIS
+        # ------------------------------------------
+
+        with col_right:
+
+
+            st.subheader(
+
+                "📊 AI Analysis"
+
+            )
+
+
+            if st.button(
+
+                "🔍 Analyse Image",
+
+                type="primary",
+
+                use_container_width=True
+
+            ):
+
+
+                # ----------------------------------
+                # CHECK MODEL
+                # ----------------------------------
+
+                if not model.is_model_available():
+
+
+                    st.error(
+
+                        "❌ Trained model not found!"
+
+                    )
+
+
+                    st.warning(
+
+                        "Please place best_model.pth "
+                        "inside the models folder."
+
+                    )
+
+
+                else:
+
+
+                    # ------------------------------
+                    # PREDICTION
+                    # ------------------------------
+
+                    with st.spinner(
+
+                        "🧠 AI is analysing the image..."
+
+                    ):
+
+
+                        result = model.predict(
+
+                            image
+
+                        )
+
+
+                    # ------------------------------
+                    # ERROR CHECK
+                    # ------------------------------
+
+                    if "error" in result:
+
+
+                        st.error(
+
+                            result["error"]
+
+                        )
+
+
+                    else:
+
+
+                        # --------------------------
+                        # RESULT
+                        # --------------------------
+
+                        predicted_label = (
+
+                            result["label"]
+
+                        )
+
+
+                        disease_name = (
+
+                            result["disease_name"]
+
+                        )
+
+
+                        confidence = (
+
+                            result["confidence"]
+
+                        )
+
+
+                        probabilities = (
+
+                            result["probabilities"]
+
+                        )
+
+
+                        # --------------------------
+                        # DISPLAY RESULT
+                        # --------------------------
+
+                        st.success(
+
+                            "Analysis Completed!"
+
+                        )
+
+
+                        st.markdown(
+
+                            f"""
+                            <div class="result-box">
+
+                            <h3>
+                            🧠 Prediction
+                            </h3>
+
+                            <b>Class:</b>
+                            {predicted_label.upper()}
+
+                            <br>
+
+                            <b>Disease:</b>
+                            {disease_name}
+
+                            <br>
+
+                            <b>Confidence:</b>
+                            {confidence:.2f}%
+
+                            </div>
+                            """,
+
+                            unsafe_allow_html=True
+
+                        )
+
+
+                        # --------------------------
+                        # CONFIDENCE BAR
+                        # --------------------------
+
+                        st.markdown(
+
+                            "### 📊 Prediction Confidence"
+
+                        )
+
+
+                        st.progress(
+
+                            min(
+                                float(confidence) / 100,
+                                1.0
+                            ),
+
+                            text=(
+                                f"{confidence:.2f}%"
+                            )
+
+                        )
+
+
+                        # --------------------------
+                        # SAVE HISTORY
+                        # --------------------------
+
+                        st.session_state.history.append(
+
+                            {
+
+                                "name":
+                                uploaded.name,
+
+                                "label":
+                                predicted_label,
+
+                                "disease":
+                                disease_name,
+
+                                "confidence":
+                                confidence
+
+                            }
+
+                        )
+
+
+                        # --------------------------
+                        # TOP PREDICTIONS
+                        # --------------------------
+
+                        st.markdown(
+
+                            "### 🏆 Top Predictions"
+
+                        )
+
+
+                        sorted_predictions = sorted(
+
+                            probabilities.items(),
+
+                            key=lambda x: x[1],
+
+                            reverse=True
+
+                        )
+
+
+                        for class_name, probability in (
+
+                            sorted_predictions[:3]
+
+                        ):
+
+
+                            full_name = (
+
+                                DISEASE_INFO.get(
+
+                                    class_name,
+
+                                    class_name
+
+                                )
+
+                            )
+
+
+                            st.write(
+
+                                f"**{class_name.upper()} "
+                                f"({full_name})**"
+
+                            )
+
+
+                            st.progress(
+
+                                min(
+
+                                    float(probability) / 100,
+
+                                    1.0
+
+                                ),
+
+                                text=(
+                                    f"{probability:.2f}%"
+                                )
+
+                            )
+
+
+                        # --------------------------
+                        # MEDICAL DISCLAIMER
+                        # --------------------------
+
+                        st.warning(
+
+                            "⚠️ The prediction is generated "
+                            "by an AI model trained on the "
+                            "HAM10000 dataset. It should not "
+                            "be considered a medical diagnosis. "
+                            "Consult a qualified dermatologist."
+                        )
+
+
+            else:
+
+
+                st.info(
+
+                    "Upload an image and click "
+                    "'Analyse Image'."
+
+                )
+
+
+    # ----------------------------------------------
+    # NO IMAGE
+    # ----------------------------------------------
+
+    else:
+
+
+        st.info(
+
+            "📤 Please upload an image "
+            "to begin analysis."
+
+        )
+
+
+# ==================================================
+# DISEASE INFORMATION PAGE
+# ==================================================
+
+elif page == "📚 Disease Information":
+
+    st.title(
+
+        "📚 Disease Information"
+
     )
-else:
-    st.caption("No analyses yet in this session.")
+
+
+    st.markdown(
+
+        """
+        The HAM10000 dataset contains seven categories
+        of skin lesions.
+        """
+
+    )
+
+
+    for class_name, disease_name in (
+
+        DISEASE_INFO.items()
+
+    ):
+
+
+        with st.expander(
+
+            f"{class_name.upper()} — {disease_name}"
+
+        ):
+
+
+            st.write(
+
+                f"""
+                **Classification Code:** {class_name.upper()}
+
+                **Disease Name:** {disease_name}
+                """
+
+            )
+
+
+# ==================================================
+# ABOUT PAGE
+# ==================================================
+
+elif page == "ℹ️ About":
+
+    st.title(
+
+        "ℹ️ About Skin-Scan AI"
+
+    )
+
+
+    st.markdown(
+
+        """
+        ### Project Description
+
+        Skin-Scan AI is a machine learning project
+        designed to classify skin lesion images.
+
+        ### Artificial Intelligence Model
+
+        - Model: ResNet-18
+        - Framework: PyTorch
+        - Learning Type: Supervised Learning
+        - Dataset: HAM10000
+        - Number of Classes: 7
+
+        ### Classification Categories
+
+        - AKIEC
+        - BCC
+        - BKL
+        - DF
+        - MEL
+        - NV
+        - VASC
+
+        ### Disclaimer
+
+        This project is designed for educational
+        and research purposes.
+
+        It should not replace professional medical
+        diagnosis.
+        """
+
+    )
+
+
+# ==================================================
+# SESSION HISTORY
+# ==================================================
+
+if page == "🔬 Analyse Image":
+
+
+    st.divider()
+
+
+    st.subheader(
+
+        "📋 Session History"
+
+    )
+
+
+    if st.session_state.history:
+
+
+        for entry in reversed(
+
+            st.session_state.history[-5:]
+
+        ):
+
+
+            st.markdown(
+
+                f"""
+                **Image:** {entry["name"]}
+
+                **Prediction:** {entry["label"].upper()}
+
+                **Disease:** {entry["disease"]}
+
+                **Confidence:** {entry["confidence"]:.2f}%
+
+                ---
+                """
+
+            )
+
+
+    else:
+
+
+        st.caption(
+
+            "No analyses performed yet."
+
+        )
+
+
+# ==================================================
+# FOOTER
+# ==================================================
+
+st.divider()
+
 
 st.markdown(
-    '<p class="sidebar-note" style="margin-top:2rem">Built with Streamlit · '
-    "Prediction placeholder ready to be swapped for a trained CNN "
-    "(HANM10000 / ISIC).</p>",
-    unsafe_allow_html=True,
+
+    """
+    <div style="text-align:center; color:gray;">
+
+    🔬 Skin-Scan AI
+
+    <br>
+
+    Powered by PyTorch + ResNet-18 + Streamlit
+
+    <br>
+
+    Educational and Research Purpose Only
+
+    </div>
+    """,
+
+    unsafe_allow_html=True
+
 )
