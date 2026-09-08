@@ -1,49 +1,98 @@
-# Day 2 Report: Dataset Validation and Leakage check
+# Day 2 Report: Dataset Verification and Baseline Evaluation
 
 ## 1. Objective
-Day 2 focused on dataset validation, leakage checking, and establishing the real baseline. However, the full HAM10000 dataset (~5.5GB) was not found on the system. We initiated a download via Kaggle, but it was cancelled before completion as requested. 
+Verify HAM10000, create lesion-aware train/validation/test splits, and evaluate the original Member 1 baseline on the untouched test split.
 
-## 2. Dataset
-- Total images: N/A (Download cancelled)
-- Unique lesions: N/A
-- Missing images: N/A
+## 2. Dataset Verification
+- Dataset: `C:\Users\muham\Documents\HAM10000\HAM10000`
+- Metadata records: 10,015
+- Unique image IDs: 10,015
+- Unique lesions: 7,470
+- Image files: 10,015
+- Missing image files: 0
+- Extra image files: 0
+- Unreadable images: 0
+- Duplicate image IDs: 0
+- Required columns: `lesion_id`, `image_id`, `dx`
+- Diagnosis labels: `akiec`, `bcc`, `bkl`, `df`, `mel`, `nv`, `vasc`
 
-## 3. Class distribution
-Not calculated as dataset download was cancelled.
+## 3. Split Verification
+The previous split was invalid because it had lesion overlap: train/validation 485, train/test 512, and validation/test 115.
 
-## 4. Lesion analysis
-Not calculated as dataset download was cancelled. However, the script `src/analyze_lesions.py` was created to perform this analysis once the dataset is available.
+The split was regenerated with lesion-level grouping, stratification, and random seed 42. Every metadata record was assigned exactly once.
 
-## 5. Existing split
-We replaced the simple random split with a lesion-aware split in `src/split_dataset.py` to prevent data leakage where images from the same lesion could appear in both train and test sets.
+| Split | Images | Lesions |
+|---|---:|---:|
+| Train | 6,981 | 5,229 |
+| Validation | 1,532 | 1,120 |
+| Test | 1,502 | 1,121 |
 
-## 6. Final split
-Not generated as dataset download was cancelled.
+Final lesion overlap:
 
-## 7. Leakage check
-Not performed as dataset download was cancelled. The script `src/verify_splits.py` was created to perform this verification.
+- Train/Validation: 0
+- Train/Test: 0
+- Validation/Test: 0
 
-## 8. Member 1 baseline
-Model: ResNet-18
-Weights: best_model.pth
+Duplicate image assignments: 0. Missing metadata images: 0. Extra split images: 0.
 
-## 9. Test results
-Not calculated as dataset download was cancelled.
+## 4. Preprocessing
+- Resize: 224 x 224
+- Normalization: ImageNet mean and standard deviation
+- Training: horizontal flip and rotation augmentation
+- Validation/test: deterministic resize, tensor conversion, and normalization only
+- Class mapping: `0=akiec`, `1=bcc`, `2=bkl`, `3=df`, `4=mel`, `5=nv`, `6=vasc`
 
-## 10. Baseline observations
-The original evaluation could suffer from data leakage because the train/test split did not account for multiple images of the same lesion.
+## 5. Baseline Checkpoint
+- Architecture: ResNet-18
+- Output classes: 7
+- Checkpoint: `models/best_model.pth`
+- Source: recovered original Member 1 checkpoint from `C:\Users\muham\Downloads\best_model.pth`
+- Size: 44,798,283 bytes
+- SHA256: `407DCFF64528FD40C97F9BA57262C46D418A010105933E4170F5F0A95DD450EA`
+- Strict load: passed; missing keys 0; unexpected keys 0
 
-## 11. Class imbalance
-Skin lesion datasets typically have severe class imbalance (e.g. mostly Melanocytic nevi). Accuracy alone is misleading, which is why precision/recall/F1 metrics are crucial.
+## 6. Baseline Test Results
+The baseline was evaluated on the 1,502-image test split.
 
-## 12. Changes made
-1. Created `feature/member2-day2` branch.
-2. Rewrote `src/split_dataset.py` to perform lesion-aware splitting (grouping by `lesion_id`).
-3. Added `USE_CLASS_WEIGHTS` flag to `src/train.py` for Day 3 preparation (defaults to False to preserve Member 1 baseline).
-4. Created `src/verify_splits.py` to verify no lesion overlap exists between splits.
-5. Created `src/analyze_lesions.py` to analyze the lesion image distribution.
-6. Configured Kaggle API and initiated HAM10000 download (cancelled).
+| Metric | Result |
+|---|---:|
+| Accuracy | 75.03% |
+| Macro Precision | 52.97% |
+| Macro Recall | 44.90% |
+| Macro F1 | 46.78% |
+| Weighted Precision | 72.75% |
+| Weighted Recall | 75.03% |
+| Weighted F1 | 72.59% |
 
-## 13. Next step
-Day 3:
-Class-weighted training and controlled model improvement.
+| Class | Precision | Recall | F1 | Support |
+|---|---:|---:|---:|---:|
+| akiec | 0.3714 | 0.5000 | 0.4262 | 52 |
+| bcc | 0.5357 | 0.4225 | 0.4724 | 71 |
+| bkl | 0.4620 | 0.5090 | 0.4843 | 167 |
+| df | 0.0000 | 0.0000 | 0.0000 | 20 |
+| mel | 0.5763 | 0.2036 | 0.3009 | 167 |
+| nv | 0.8393 | 0.9363 | 0.8851 | 1,004 |
+| vasc | 0.9231 | 0.5714 | 0.7059 | 21 |
+
+Confusion matrix: `outputs/confusion_matrix_baseline.png`
+
+## 7. Training Class Imbalance
+Weights use only the 6,981 training samples and `weight = N / (7 * class_count)`.
+
+| Class | Count | Percentage | Weight |
+|---|---:|---:|---:|
+| akiec | 222 | 3.1801% | 4.49227799 |
+| bcc | 361 | 5.1712% | 2.76256431 |
+| bkl | 772 | 11.0586% | 1.29182087 |
+| df | 71 | 1.0170% | 14.04627767 |
+| mel | 773 | 11.0729% | 1.29014970 |
+| nv | 4,683 | 67.0821% | 0.21295873 |
+| vasc | 99 | 1.4181% | 10.07359307 |
+
+The majority class is `nv`; the smallest class is `df`. Macro metrics are important because weighted metrics are strongly influenced by `nv`.
+
+## 8. Limitations
+- HAM10000 is substantially class-imbalanced.
+- The rare classes have limited support in the test split.
+- This is an educational/research evaluation and not a medical diagnostic system.
+- Class-weighted training has not been run in Day 2.

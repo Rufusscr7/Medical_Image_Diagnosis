@@ -24,10 +24,10 @@ from model import create_model
 
 BATCH_SIZE = 16
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-DATASET_PATH = "dataset/HAM10000"
+DATASET_PATH = os.environ.get("HAM10000_DATASET_PATH", "dataset/HAM10000")
 TEST_CSV = os.path.join(DATASET_PATH, "splits", "test.csv")
-MODEL_PATH = "models/best_model.pth"
-OUTPUT_DIR = "outputs"
+MODEL_PATH = os.environ.get("MODEL_PATH", "models/best_model.pth")
+OUTPUT_DIR = os.environ.get("OUTPUT_DIR", "outputs")
 IMAGE_FOLDERS = [
     os.path.join(DATASET_PATH, "HAM10000_images_part_1"),
     os.path.join(DATASET_PATH, "HAM10000_images_part_2")
@@ -146,9 +146,9 @@ def evaluate():
     print("=" * 55)
 
     # Confusion matrix
-    cm = confusion_matrix(all_targets, all_preds)
+    cm = confusion_matrix(all_targets, all_preds, labels=range(len(CLASS_NAMES)))
     os.makedirs(OUTPUT_DIR, exist_ok=True)
-    plot_confusion_matrix(cm, CLASS_NAMES, os.path.join(OUTPUT_DIR, "confusion_matrix.png"))
+    plot_confusion_matrix(cm, CLASS_NAMES, os.path.join(OUTPUT_DIR, "confusion_matrix_baseline.png"))
 
 
 if __name__ == "__main__":
