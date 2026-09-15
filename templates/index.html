@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Medical Image Diagnosis</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main class="page-shell">
+    <header class="site-header">
+      <p class="eyebrow">HAM10000 / FROZEN MODEL DEMO</p>
+      <h1>Medical Image Diagnosis</h1>
+      <p class="subtitle">Skin Lesion Classification using ResNet-18</p>
+    </header>
+
+    <section class="notice" aria-label="Research disclaimer">
+      <strong>Educational and research use only.</strong>
+      This system is not a medical diagnosis and should not be used for clinical decision-making.
+    </section>
+
+    <section class="upload-panel">
+      <div>
+        <p class="section-label">Analyze an image</p>
+        <h2>Upload a skin-lesion image</h2>
+        <p class="muted">Accepted formats: JPG, JPEG, and PNG. Maximum size: 8 MB.</p>
+      </div>
+      <form method="post" enctype="multipart/form-data">
+        <label class="file-input">
+          <span>Select image</span>
+          <input type="file" name="image" accept=".jpg,.jpeg,.png,image/jpeg,image/png" required>
+        </label>
+        <button type="submit">Analyze image</button>
+      </form>
+    </section>
+
+    {% if error %}
+    <section class="message error" role="alert">{{ error }}</section>
+    {% endif %}
+
+    {% if result %}
+    <section class="result-panel" aria-live="polite">
+      <div class="result-heading">
+        <div>
+          <p class="section-label">Model prediction</p>
+          <h2>{{ result.class_name }}</h2>
+          <p class="muted">Dataset class code: <strong>{{ result.predicted_class }}</strong></p>
+        </div>
+        <div class="confidence">
+          <span>Confidence</span>
+          <strong>{{ result.confidence }}</strong>
+        </div>
+      </div>
+      <div class="visualizations">
+        <figure>
+          <img src="{{ result.original }}" alt="Uploaded skin-lesion image">
+          <figcaption>Original Image</figcaption>
+        </figure>
+        <figure>
+          <img src="{{ result.overlay }}" alt="Grad-CAM explanation overlay">
+          <figcaption>Grad-CAM Explanation</figcaption>
+        </figure>
+      </div>
+      <p class="result-note">The heatmap highlights image regions contributing to this model prediction. It does not prove clinical reasoning or correctness.</p>
+    </section>
+    {% endif %}
+  </main>
+</body>
+</html>
