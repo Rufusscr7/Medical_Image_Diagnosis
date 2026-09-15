@@ -9,28 +9,28 @@
 <body>
   <main class="page-shell">
     <header class="site-header">
-      <p class="eyebrow">HAM10000 / FROZEN MODEL DEMO</p>
+      <p class="eyebrow">A STUDENT RESEARCH DEMO</p>
       <h1>Medical Image Diagnosis</h1>
-      <p class="subtitle">Skin Lesion Classification using ResNet-18</p>
+      <p class="subtitle">A frozen ResNet-18 model with a visual explanation.</p>
     </header>
 
     <section class="notice" aria-label="Research disclaimer">
-      <strong>Educational and research use only.</strong>
-      This system is not a medical diagnosis and should not be used for clinical decision-making.
+      <strong>A note before you begin:</strong>
+      this is an educational research project, not a medical diagnosis. Please do not use its output for clinical decisions.
     </section>
 
     <section class="upload-panel">
       <div>
-        <p class="section-label">Analyze an image</p>
-        <h2>Upload a skin-lesion image</h2>
-        <p class="muted">Accepted formats: JPG, JPEG, and PNG. Maximum size: 8 MB.</p>
+        <p class="section-label">Try the demo</p>
+        <h2>See what the model notices</h2>
+        <p class="muted">Choose a clear skin-lesion image. The model will return its predicted class and a Grad-CAM view of the regions that influenced it.</p>
       </div>
       <form method="post" enctype="multipart/form-data">
         <label class="file-input">
-          <span>Select image</span>
+          <span>Choose an image</span>
           <input type="file" name="image" accept=".jpg,.jpeg,.png,image/jpeg,image/png" required>
         </label>
-        <button type="submit">Analyze image</button>
+        <button type="submit">Run prediction</button>
       </form>
     </section>
 
@@ -42,7 +42,7 @@
     <section class="result-panel" aria-live="polite">
       <div class="result-heading">
         <div>
-          <p class="section-label">Model prediction</p>
+          <p class="section-label">The model's prediction</p>
           <h2>{{ result.class_name }}</h2>
           <p class="muted">Dataset class code: <strong>{{ result.predicted_class }}</strong></p>
         </div>
@@ -61,9 +61,11 @@
           <figcaption>Grad-CAM Explanation</figcaption>
         </figure>
       </div>
-      <p class="result-note">The heatmap highlights image regions contributing to this model prediction. It does not prove clinical reasoning or correctness.</p>
+      <p class="result-note">The heatmap is a visual clue about the model's attention. It is not a diagnosis, proof of correctness, or substitute for a qualified professional.</p>
     </section>
     {% endif %}
+
+    <footer class="site-footer">Built for learning with HAM10000, PyTorch, Flask, and Grad-CAM.</footer>
   </main>
 </body>
 </html>
