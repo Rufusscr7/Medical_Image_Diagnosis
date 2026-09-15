@@ -372,17 +372,16 @@ if page != "home":
                 '<p class="hero-sub">Upload a skin lesion image and let our AI model predict the possible disease.</p></div>',
                 unsafe_allow_html=True)
     pages = {
-        "about": ("About Project", "SkinCare AI is a student-built medical imaging demo that uses a deep "
-                  "learning model to classify skin diseases from photographs of lesions. It is intended "
-                  "for educational and research purposes to demonstrate how convolutional neural networks "
-                  "can assist in the early screening of skin conditions."),
+        "about": ("About Project", "SkinCare AI is a medical imaging prototype that uses a deep learning "
+            "model to classify skin-lesion images. It is intended for research and evaluation, with "
+            "the model outputs presented as experimental predictions rather than clinical conclusions."),
         "info": ("Disease Information", "Skin Cancer / Melanoma: an abnormal growth of skin cells that "
                  "often develops on sun-exposed skin. Early detection greatly improves treatment outcomes. "
                  "Other common classes include benign nevi, basal cell carcinoma and squamous cell carcinoma. "
                  "Always consult a dermatologist for an expert evaluation."),
-        "team": ("Team", "Built by a team of students and developers passionate about applying artificial "
-                 "intelligence to healthcare. Model, dataset and design contributions are documented in the "
-                 "project repository."),
+        "team": ("Team", "The project brings together model development, data validation, explainability, "
+           "and interface engineering. Model, dataset, and design decisions are documented in the "
+           "project repository."),
     }
     st.info(pages[page][1])
     st.stop()
