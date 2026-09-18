@@ -9,7 +9,7 @@ The current interface is a local Flask inference service. It reports the existin
 From this directory:
 
 ```powershell
-python -m pip install -r app/requirements.txt
+python -m pip install -r requirements.txt
 python app.py
 ```
 
@@ -22,7 +22,7 @@ Open `http://127.0.0.1:5000/` and upload a JPG, JPEG, or PNG image. Uploads are 
 - `src/predict.py`: command-line prediction helper
 - `src/gradcam.py`: Grad-CAM generation for the final convolutional layer
 - `app.py`: Flask interface using the frozen model and existing Grad-CAM code
-- `DAY1_REPORT.md` through `DAY5_REPORT.md`: project notes and verification records
+- `DAY1_REPORT.md` through `DAY6_REPORT.md`: project notes and verification records
 
 The seven class codes are `akiec`, `bcc`, `bkl`, `df`, `mel`, `nv`, and `vasc`. Their readable names are defined in `src/preprocessing.py`.
 
@@ -44,4 +44,4 @@ Compile the Python code with:
 python -m compileall -q src app.py
 ```
 
-The Day 5 report records the web upload, error-handling, real-image, and model-integrity checks. The validation suite covers normal images, multiple classes, a minority class, missing files, unsupported files, corrupt images, oversized uploads, startup, and live HTTP page delivery.
+The Day 6 report records the frozen-model end-to-end and robustness checks. The validation suite covers valid JPG/JPEG/PNG uploads, missing files, unsupported files, corrupt images, very small and oversized images, repeated uploads, startup, direct-versus-web consistency, and Grad-CAM delivery. Raw HAM10000 image files are not stored in this repository, so rerunning the historical class-specific image cases requires the local dataset used by the earlier reports.
