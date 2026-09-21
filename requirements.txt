@@ -1,6 +1,7 @@
 torch
 torchvision
 flask
+waitress
 numpy
 pandas
 Pillow

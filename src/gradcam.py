@@ -7,11 +7,13 @@ import torch
 
 
 try:
+    import torchvision  # noqa: F401
+except RuntimeError as error:
+    if "torchvision::nms" not in str(error):
+        raise
     _TORCHVISION_LIBRARY = torch.library.Library("torchvision", "DEF")
     _TORCHVISION_LIBRARY.define("nms(Tensor dets, Tensor scores, float iou_threshold) -> Tensor")
     _TORCHVISION_LIBRARY.define("qnms(Tensor dets, Tensor scores, float iou_threshold) -> Tensor")
-except RuntimeError:
-    _TORCHVISION_LIBRARY = None
 
 from PIL import Image, ImageDraw
 

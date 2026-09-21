@@ -12,7 +12,6 @@ from PIL import Image, UnidentifiedImageError
 PROJECT_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from gradcam import DEVICE as GRADCAM_DEVICE
 from gradcam import load_model, make_gradcam
 from preprocessing import DISEASE_NAMES
 

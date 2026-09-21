@@ -38,6 +38,14 @@ python app.py
 
 Open `http://127.0.0.1:5000/`, upload a JPG, JPEG, or PNG image, and review the predicted class, confidence, and Grad-CAM output. Uploads are validated, processed temporarily, and removed after prediction.
 
+For a production-style local server, install the same requirements and run:
+
+```powershell
+python wsgi.py
+```
+
+The WSGI server listens on `http://127.0.0.1:8000/` by default. Set the `PORT` environment variable when the deployment platform provides its own port.
+
 ## System overview
 
 - `src/model.py`: the shared ResNet-18 model definition

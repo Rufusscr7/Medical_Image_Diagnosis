@@ -23,19 +23,6 @@ from model import create_model
 
 
 # =====================================
-# IMPORT PROJECT MODULES
-# =====================================
-
-from preprocessing import (
-    test_transform,
-    CLASS_NAMES,
-    DISEASE_NAMES
-)
-
-from model import create_model
-
-
-# =====================================
 # DEVICE
 # =====================================
 
