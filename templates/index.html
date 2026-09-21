@@ -3,69 +3,108 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Medical Image Diagnosis</title>
+  <title>Medical Image Diagnosis | Review Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <main class="page-shell">
-    <header class="site-header">
-      <p class="eyebrow">COMPUTER VISION INFERENCE SERVICE</p>
-      <h1>Medical Image Diagnosis</h1>
-      <p class="subtitle">Skin-lesion classification with transparent visual explanations.</p>
-    </header>
-
-    <section class="notice" aria-label="Research disclaimer">
-      <strong>Research-use notice:</strong>
-      this interface presents model output for evaluation. It is not a medical diagnosis and must not be used for clinical decisions.
-    </section>
-
-    <section class="upload-panel">
-      <div>
-        <p class="section-label">Inference workspace</p>
-        <h2>See what the model notices</h2>
-        <p class="muted">Choose a clear skin-lesion image. The model will return its predicted class and a Grad-CAM view of the regions that influenced it.</p>
+  <div class="app-shell">
+    <aside class="side-rail">
+      <a class="brand" href="/" aria-label="Medical Image Diagnosis home">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3v18M3 12h18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/></svg></span>
+        <span><strong>medscope</strong><small>AI review console</small></span>
+      </a>
+      <nav class="rail-nav" aria-label="Primary navigation">
+        <a class="nav-item active" href="#analysis"><span class="nav-icon">⌁</span><span>Analysis</span></a>
+        <a class="nav-item" href="#workflow"><span class="nav-icon">◌</span><span>Workflow</span></a>
+        <a class="nav-item" href="#about"><span class="nav-icon">i</span><span>About</span></a>
+      </nav>
+      <div class="rail-footer">
+        <div class="system-status"><span class="status-dot"></span><span><strong>System ready</strong><small>Frozen model online</small></span></div>
+        <span class="version">v1.0 · local</span>
       </div>
-      <form method="post" enctype="multipart/form-data">
-        <label class="file-input">
-          <span>Choose an image</span>
-          <input type="file" name="image" accept=".jpg,.jpeg,.png,image/jpeg,image/png" required>
-        </label>
-        <button type="submit">Run prediction</button>
-      </form>
-    </section>
+    </aside>
 
-    {% if error %}
-    <section class="message error" role="alert">{{ error }}</section>
-    {% endif %}
+    <main class="main-content">
+      <header class="topbar">
+        <div><p class="breadcrumb">Workspace <span>/</span> Image analysis</p><h1>Clinical image review</h1></div>
+        <div class="topbar-meta"><span class="secure-pill"><span class="shield">✓</span> Local &amp; private</span><span class="date-label">HAM10000 research set</span></div>
+      </header>
 
-    {% if result %}
-    <section class="result-panel" aria-live="polite">
-      <div class="result-heading">
-        <div>
-          <p class="section-label">The model's prediction</p>
-          <h2>{{ result.class_name }}</h2>
-          <p class="muted">Dataset class code: <strong>{{ result.predicted_class }}</strong></p>
+      <section class="notice" aria-label="Research disclaimer"><span class="notice-icon">!</span><span><strong>Research-use notice</strong> This console presents model output for evaluation only. It is not a medical diagnosis and must not be used for clinical decisions.</span></section>
+
+      <section class="metric-strip" aria-label="System metrics">
+        <div class="metric"><span class="metric-icon teal">✦</span><span><small>Model architecture</small><strong>ResNet-18</strong></span></div>
+        <div class="metric"><span class="metric-icon blue">◉</span><span><small>Classification set</small><strong>7 classes</strong></span></div>
+        <div class="metric"><span class="metric-icon green">↗</span><span><small>Inference mode</small><strong>Frozen / CPU</strong></span></div>
+        <div class="metric"><span class="metric-icon amber">⌁</span><span><small>Explainability</small><strong>Grad-CAM active</strong></span></div>
+      </section>
+
+      <section class="workspace-grid" id="analysis">
+        <div class="upload-card">
+          <div class="section-heading"><div><p class="eyebrow">01 · New review</p><h2>Upload a lesion image</h2></div><span class="step-badge">Input</span></div>
+          <p class="helper-text">Add a clear dermoscopic image to run the frozen classification model and generate an attention overlay.</p>
+          <form method="post" enctype="multipart/form-data" id="upload-form">
+            <label class="drop-zone" for="image-input" id="drop-zone">
+              <span class="upload-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14.5v3A2.5 2.5 0 0 0 7.5 20h9a2.5 2.5 0 0 0 2.5-2.5v-3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              <span class="drop-title" id="file-label">Drop image here or <u>browse files</u></span>
+              <span class="drop-meta">JPG, JPEG or PNG · Maximum 8 MB</span>
+              <input type="file" name="image" id="image-input" accept=".jpg,.jpeg,.png,image/jpeg,image/png" required>
+            </label>
+            <div class="form-actions"><span class="input-note"><span class="tiny-check">✓</span> Original file stays on this device</span><button type="submit"><span>Run analysis</span><span class="button-arrow">→</span></button></div>
+          </form>
         </div>
-        <div class="confidence">
-          <span>Confidence</span>
-          <strong>{{ result.confidence }}</strong>
-        </div>
-      </div>
-      <div class="visualizations">
-        <figure>
-          <img src="{{ result.original }}" alt="Uploaded skin-lesion image">
-          <figcaption>Original Image</figcaption>
-        </figure>
-        <figure>
-          <img src="{{ result.overlay }}" alt="Grad-CAM explanation overlay">
-          <figcaption>Grad-CAM Explanation</figcaption>
-        </figure>
-      </div>
-      <p class="result-note">The heatmap is a visual clue about the model's attention. It is not a diagnosis, proof of correctness, or substitute for a qualified professional.</p>
-    </section>
-    {% endif %}
 
-    <footer class="site-footer">HAM10000 · PyTorch · Flask · ResNet-18 · Grad-CAM</footer>
-  </main>
+        <aside class="workflow-card" id="workflow">
+          <div class="section-heading"><div><p class="eyebrow">02 · Process</p><h2>Review workflow</h2></div><span class="live-label"><span></span> Live</span></div>
+          <div class="workflow-list">
+            <div class="workflow-step done"><span class="workflow-number">1</span><span><strong>Upload</strong><small>Image received locally</small></span><b>✓</b></div>
+            <div class="workflow-line"></div>
+            <div class="workflow-step"><span class="workflow-number">2</span><span><strong>Preprocess</strong><small>Resize and normalize</small></span><b>·</b></div>
+            <div class="workflow-line"></div>
+            <div class="workflow-step"><span class="workflow-number">3</span><span><strong>Classify</strong><small>Seven-class prediction</small></span><b>·</b></div>
+            <div class="workflow-line"></div>
+            <div class="workflow-step"><span class="workflow-number">4</span><span><strong>Explain</strong><small>Grad-CAM attention map</small></span><b>·</b></div>
+          </div>
+          <div class="workflow-foot"><span class="pulse"></span> Ready for an image</div>
+        </aside>
+      </section>
+
+      {% if error %}
+      <section class="message error" role="alert"><span class="message-icon">!</span><span><strong>Analysis could not be completed</strong><small>{{ error }}</small></span></section>
+      {% endif %}
+
+      {% if result %}
+      <section class="result-panel" aria-live="polite">
+        <div class="result-topline"><div><p class="eyebrow">03 · Review output</p><h2>Model assessment</h2></div><span class="complete-pill"><span>✓</span> Analysis complete</span></div>
+        <div class="assessment-summary">
+          <div class="diagnosis-block"><span class="summary-label">Predicted class</span><h3>{{ result.class_name }}</h3><span class="class-code">HAM10000 code <strong>{{ result.predicted_class }}</strong></span></div>
+          <div class="confidence-block"><div class="confidence-head"><span>Confidence score</span><strong>{{ result.confidence }}</strong></div><div class="confidence-track"><span style="width: {{ result.confidence }}"></span></div><small>Probability assigned to the predicted class</small></div>
+        </div>
+        <div class="visualizations">
+          <figure><div class="image-frame"><img src="{{ result.original }}" alt="Uploaded skin-lesion image"></div><figcaption><span class="figure-index">A</span><span><strong>Source image</strong><small>Original uploaded image</small></span></figcaption></figure>
+          <figure><div class="image-frame heatmap-frame"><img src="{{ result.overlay }}" alt="Grad-CAM explanation overlay"></div><figcaption><span class="figure-index teal-index">B</span><span><strong>Attention overlay</strong><small>Grad-CAM interpretability view</small></span></figcaption></figure>
+        </div>
+        <div class="result-note"><span>i</span><p><strong>Interpretation note</strong> The heatmap highlights image regions that influenced the model output. It is an interpretability visualization, not clinical evidence or proof of correctness.</p></div>
+      </section>
+      {% endif %}
+
+      <section class="about-band" id="about"><div><p class="eyebrow">About this console</p><h2>Built for transparent model review.</h2></div><p>Medical Image Diagnosis combines a frozen ResNet-18 classifier with Grad-CAM so each output can be inspected rather than treated as an opaque score.</p></section>
+      <footer class="site-footer"><span>MEDSCOPE AI REVIEW CONSOLE</span><span>Educational and research use only · Not a clinical diagnostic tool</span><span>PyTorch · Flask · HAM10000</span></footer>
+    </main>
+  </div>
+  <script>
+    const input = document.getElementById('image-input');
+    const dropZone = document.getElementById('drop-zone');
+    const label = document.getElementById('file-label');
+    if (input) {
+      input.addEventListener('change', () => { if (input.files.length) label.innerHTML = `<strong>${input.files[0].name}</strong>`; });
+      ['dragenter', 'dragover'].forEach(eventName => dropZone.addEventListener(eventName, event => { event.preventDefault(); dropZone.classList.add('is-dragging'); }));
+      ['dragleave', 'drop'].forEach(eventName => dropZone.addEventListener(eventName, event => { event.preventDefault(); dropZone.classList.remove('is-dragging'); }));
+      dropZone.addEventListener('drop', event => { if (event.dataTransfer.files.length) { input.files = event.dataTransfer.files; input.dispatchEvent(new Event('change')); } });
+    }
+  </script>
 </body>
 </html>

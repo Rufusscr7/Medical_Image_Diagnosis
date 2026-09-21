@@ -1,19 +1,42 @@
 # Medical Image Diagnosis
 
-This repository contains an end-to-end computer vision workflow for skin-lesion image classification with the HAM10000 dataset. It combines a frozen ResNet-18 checkpoint with Grad-CAM so individual predictions can be inspected rather than treated as opaque scores.
+Medical Image Diagnosis is a local Flask application for skin-lesion image classification using the HAM10000 dataset. It combines a frozen ResNet-18 checkpoint with Grad-CAM so predictions can be inspected alongside an interpretability visualization.
 
-The current interface is a local Flask inference service. It reports the existing model prediction, confidence, readable class name, and a visual explanation. It is a research interface, not a clinical product.
+## Dataset and model
 
-## Run the inference service
+The project uses HAM10000 and its seven classes:
 
-From this directory:
+- `akiec`
+- `bcc`
+- `bkl`
+- `df`
+- `mel`
+- `nv`
+- `vasc`
+
+The application uses the existing frozen ResNet-18 checkpoint at `models/best_model.pth`. The model is loaded for inference only; the web application does not train, retrain, fine-tune, or replace it.
+
+## Workflow
+
+`Upload -> Preprocess -> Predict -> Confidence -> Grad-CAM`
+
+Features include image upload, skin-lesion classification, confidence reporting, Grad-CAM visualization, and input validation.
+
+## Installation and running
+
+From the repository directory, install the verified dependencies:
 
 ```powershell
 python -m pip install -r requirements.txt
+```
+
+Ensure `models/best_model.pth` is present, then start the application:
+
+```powershell
 python app.py
 ```
 
-Open `http://127.0.0.1:5000/` and upload a JPG, JPEG, or PNG image. Uploads are validated, processed temporarily, and removed after the prediction is generated.
+Open `http://127.0.0.1:5000/`, upload a JPG, JPEG, or PNG image, and review the predicted class, confidence, and Grad-CAM output. Uploads are validated, processed temporarily, and removed after prediction.
 
 ## System overview
 
@@ -34,7 +57,11 @@ The application uses only `models/best_model.pth`. Its verified SHA256 is:
 
 `407DCFF64528FD40C97F9BA57262C46D418A010105933E4170F5F0A95DD450EA`
 
-No training is performed when the web app starts. Grad-CAM is an interpretability visualization, not evidence of clinical reasoning or medical correctness. This project is intended for research and evaluation, not clinical decision-making.
+No training is performed when the web app starts. Grad-CAM is an interpretability visualization, not evidence of clinical reasoning or medical correctness.
+
+## Limitations and responsible use
+
+This project is for educational and research use only and is not a clinical diagnostic tool. Model performance varies between classes and is limited by the training data, class imbalance, dataset coverage, and image quality. HAM10000 is a finite research dataset and does not represent every patient or clinical setting. Grad-CAM shows image regions associated with the model output; it does not establish causation, correctness, or clinical evidence. Predictions must not be treated as medical advice or used for clinical decisions.
 
 ## Validation
 
